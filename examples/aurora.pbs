@@ -1,0 +1,69 @@
+#!/bin/bash
+# Parity check on ALCF Aurora, 12 tiles per node. One node by default; pass -l select=N for N nodes:
+#   qsub -A <project> -q debug [-l select=2] -v PY=<python>,OUT=<outdir>,MODEL=<local model path> examples/aurora.pbs
+# The global batch is 2 rows per rank unless GLOBAL_BATCH is set. PRECISION=bf16-mixed selects the BF16 test;
+# with it, FAULTS (":"-separated, since qsub -v cannot carry a space) adds negative controls.
+#PBS -l select=1
+#PBS -l walltime=00:20:00
+#PBS -l filesystems=home:flare
+#PBS -N sprite-parity
+set -eo pipefail
+# Lmod's bash init reads unset variables (ZSH_EVAL_CONTEXT), so nounset comes on only after the module load.
+module load frameworks
+set -u
+export ZE_FLAT_DEVICE_HIERARCHY=FLAT   # one device per tile: 12 per node
+cd "$PBS_O_WORKDIR"
+# Install the release checkout in the worker environment for versioned results.
+EX=${SPRITE_EXAMPLES:-$PBS_O_WORKDIR/examples}
+[[ -d "$EX/../src/lightning_sprite" ]] && export PYTHONPATH="$EX/../src${PYTHONPATH:+:$PYTHONPATH}"
+NNODES=$(sort -u "$PBS_NODEFILE" | wc -l)
+NRANKS=$((NNODES * 12))
+GB=${GLOBAL_BATCH:-$((2 * NRANKS))}
+PRECISION=${PRECISION:-32-true}
+ARGS=(--device xpu --model "$MODEL" --global-batch "$GB" --world "$NRANKS" --precision "$PRECISION")
+# No per-rank ZE_AFFINITY_MASK: every rank must see all 12 tiles and selects xpu:<local rank>.
+if [[ "$PRECISION" == bf16-mixed ]]; then
+  for arm in ref32 ref split split_premul; do
+    mpiexec -n 1 --ppn 1 "$PY" "$EX/parity_check.py" "$arm" "$OUT" "${ARGS[@]}"
+  done
+else
+  mpiexec -n 1 --ppn 1 "$PY" "$EX/parity_check.py" ref "$OUT" "${ARGS[@]}"
+fi
+for arm in ddp fsdp; do
+  mpiexec -n "$NRANKS" --ppn 12 "$PY" "$EX/parity_check.py" "$arm" "$OUT" "${ARGS[@]}" --nodes "$NNODES"
+done
+status=0
+"$PY" "$EX/parity_check.py" compare "$OUT" --precision "$PRECISION" || status=$?
+# Optional BF16 negative controls, e.g. FAULTS=missing-rank:wrong-scale (":" or spaces): each must be rejected.
+FAULTS=${FAULTS:-}
+for fault in ${FAULTS//:/ }; do
+  mkdir "$OUT/fault_$fault"
+  for arm in ref32 ref split split_premul; do
+    ln -s "../$arm.json" "$OUT/fault_$fault/$arm.json" && ln -s "../$arm.pt" "$OUT/fault_$fault/$arm.pt"
+  done
+  for arm in ddp fsdp; do
+    mpiexec -n "$NRANKS" --ppn 12 "$PY" "$EX/parity_check.py" "$arm" "$OUT/fault_$fault" "${ARGS[@]}" \
+      --nodes "$NNODES" --fault "$fault"
+  done
+  "$PY" "$EX/parity_check.py" compare "$OUT/fault_$fault" --precision "$PRECISION" || true
+done
+# Optional DDP-only controls, with the other arms linked to the clean baseline.
+DDP_FAULTS=${DDP_FAULTS:-}
+for fault in ${DDP_FAULTS//:/ }; do
+  case "$fault" in
+    fp32-backbone | local-adapter | scale-grad | skip-update) ;;
+    *) echo "Unknown DDP fault: $fault" >&2; exit 1 ;;
+  esac
+  mkdir "$OUT/fault_${fault}_ddp"
+  for arm in ref32 ref split split_premul fsdp; do
+    ln -s "../$arm.json" "$OUT/fault_${fault}_ddp/$arm.json"
+    ln -s "../$arm.pt" "$OUT/fault_${fault}_ddp/$arm.pt"
+  done
+  mpiexec -n "$NRANKS" --ppn 12 "$PY" "$EX/parity_check.py" ddp "$OUT/fault_${fault}_ddp" "${ARGS[@]}" --nodes "$NNODES" --fault "$fault"
+  "$PY" "$EX/parity_check.py" compare "$OUT/fault_${fault}_ddp" --precision "$PRECISION" || true
+done
+if [[ -n "$FAULTS$DDP_FAULTS" ]]; then
+  "$PY" "$EX/parity_check.py" faults "$OUT" --precision "$PRECISION" \
+    --expected-faults "${FAULTS}${FAULTS:+:}${DDP_FAULTS}" || status=$?
+fi
+exit "$status"

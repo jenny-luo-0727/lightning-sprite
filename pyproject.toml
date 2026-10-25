@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lightning-sprite"
+version = "0.1.0"
+description = "Multi-GPU PyTorch Lightning on Intel XPU (DDP + FSDP2)"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Jenny Luo", email = "jennyluo@berkeley.edu" }]
+requires-python = ">=3.10"
+# Upper bound: the package overrides Lightning internals, so an untested Lightning release
+# should fail at install rather than mid-run. Raise it only after the test suite and the
+# hardware parity check pass on the new release.
+dependencies = [
+    "lightning>=2.6.5,<2.7",
+    "torch>=2.6",
+]
+keywords = ["pytorch-lightning", "lightning", "xpu", "intel-gpu", "ddp", "fsdp", "fsdp2", "aurora", "alcf"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lightning_sprite"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::UserWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "RUF"]
