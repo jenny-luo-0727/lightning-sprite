@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lightning-sprite"
-version = "0.1.0"
+version = "0.1.1"
 description = "Multi-GPU PyTorch Lightning on Intel XPU (DDP + FSDP2)"
 readme = "README.md"
 license = "Apache-2.0"
@@ -20,7 +20,7 @@ dependencies = [
 ]
 keywords = ["pytorch-lightning", "lightning", "xpu", "intel-gpu", "ddp", "fsdp", "fsdp2", "aurora", "alcf"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",

@@ -8,7 +8,7 @@ FSDP2 data parallelism, and a cluster environment for `mpiexec` (PALS) launches.
 
 Not affiliated with Lightning AI or Intel.
 
-> **Status: pre-alpha.** Parity checks pass on A100 and on 1 to 8 Aurora nodes, and checkpoint checks on A100 and
+> **Status: alpha.** Parity checks pass on A100 and on 1 to 8 Aurora nodes, and checkpoint checks on A100 and
 > on 1 and 2 Aurora nodes, one run per configuration.
 > See [Tested](#tested), [BF16 parity](#bf16-parity), [Checkpoints](#checkpoints) and [Open items](#open-items).
 
