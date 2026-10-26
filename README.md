@@ -518,7 +518,7 @@ This research used resources of the Argonne Leadership Computing Facility, which
 Office of Science User Facility operated under contract DE-AC02-06CH11357.
 
 This research used resources of the National Energy Research Scientific Computing Center (NERSC), a Department of
-Energy User Facility (projects gen0031-2026 and m5429-2026).
+Energy User Facility using NERSC awards ERCAP0039291 and ERCAP0039670.
 
 ## License
 
