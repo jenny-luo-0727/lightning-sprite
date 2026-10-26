@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lightning-sprite"
-version = "0.1.1"
+version = "0.1.2"
 description = "Multi-GPU PyTorch Lightning on Intel XPU (DDP + FSDP2)"
 readme = "README.md"
 license = "Apache-2.0"

@@ -512,6 +512,14 @@ Contributions are licensed under Apache-2.0, the project's license.
 Best effort, by one maintainer. The Lightning upper bound is raised only after the tests and the parity check pass
 on the new release. If Lightning gains native XPU support, this package will be deprecated in its favor.
 
+## Acknowledgments
+
+This research used resources of the Argonne Leadership Computing Facility, which is a U.S. Department of Energy
+Office of Science User Facility operated under contract DE-AC02-06CH11357.
+
+This research used resources of the National Energy Research Scientific Computing Center (NERSC), a Department of
+Energy User Facility (projects gen0031-2026 and m5429-2026).
+
 ## License
 
 Apache-2.0.
